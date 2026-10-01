@@ -1,3 +1,4 @@
+import type { BenchmarkResult } from "@/lib/benchmark";
 import type { SearchResult } from "@/lib/search";
 
 export type ExperimentStepRecord = {
@@ -25,8 +26,9 @@ export type ExperimentRunRecord = {
 };
 
 const DB_NAME = "faint-research";
-const DB_VERSION = 1;
-const STORE_NAME = "experiment-runs";
+const DB_VERSION = 2;
+const RUN_STORE = "experiment-runs";
+const BENCHMARK_STORE = "benchmarks";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -38,8 +40,11 @@ function openDatabase(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(RUN_STORE)) {
+        database.createObjectStore(RUN_STORE, { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains(BENCHMARK_STORE)) {
+        database.createObjectStore(BENCHMARK_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -48,14 +53,15 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 function transactionRequest<T>(
+  storeName: string,
   mode: IDBTransactionMode,
   action: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
   return openDatabase().then(
     (database) =>
       new Promise<T>((resolve, reject) => {
-        const transaction = database.transaction(STORE_NAME, mode);
-        const store = transaction.objectStore(STORE_NAME);
+        const transaction = database.transaction(storeName, mode);
+        const store = transaction.objectStore(storeName);
         const request = action(store);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed."));
@@ -92,25 +98,39 @@ export function newExperimentRun(
 
 export async function saveExperimentRun(run: ExperimentRunRecord) {
   const next = { ...run, updatedAt: new Date().toISOString() };
-  await transactionRequest("readwrite", (store) => store.put(next));
+  await transactionRequest(RUN_STORE, "readwrite", (store) => store.put(next));
   return next;
 }
 
 export async function getExperimentRun(id: string) {
-  return transactionRequest<ExperimentRunRecord | undefined>("readonly", (store) => store.get(id));
+  return transactionRequest<ExperimentRunRecord | undefined>(RUN_STORE, "readonly", (store) => store.get(id));
 }
 
 export async function listExperimentRuns() {
-  const runs = await transactionRequest<ExperimentRunRecord[]>("readonly", (store) => store.getAll());
+  const runs = await transactionRequest<ExperimentRunRecord[]>(RUN_STORE, "readonly", (store) => store.getAll());
   return runs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function deleteExperimentRun(id: string) {
-  await transactionRequest("readwrite", (store) => store.delete(id));
+  await transactionRequest(RUN_STORE, "readwrite", (store) => store.delete(id));
 }
 
 export async function clearExperimentRuns() {
-  await transactionRequest("readwrite", (store) => store.clear());
+  await transactionRequest(RUN_STORE, "readwrite", (store) => store.clear());
+}
+
+export async function saveBenchmarkResult(result: BenchmarkResult) {
+  await transactionRequest(BENCHMARK_STORE, "readwrite", (store) => store.put(result));
+  return result;
+}
+
+export async function listBenchmarkResults() {
+  const results = await transactionRequest<BenchmarkResult[]>(BENCHMARK_STORE, "readonly", (store) => store.getAll());
+  return results.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function deleteBenchmarkResult(id: string) {
+  await transactionRequest(BENCHMARK_STORE, "readwrite", (store) => store.delete(id));
 }
 
 export function runToSerializable(run: ExperimentRunRecord) {
