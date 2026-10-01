@@ -78,7 +78,7 @@ export async function runOracleGapBenchmark(
 
   for (let step = 0; step < steps; step++) {
     const oracle = runOracleStep(target, oracleCurrent, width, height, step, configs);
-    oracleCurrent = oracle.current;
+    oracleCurrent = new Uint8ClampedArray(oracle.current);
     oracleTeacherEvaluations += oracle.results.reduce((sum, result) => sum + result.evaluations, 0);
     oracleExecutedEvaluations += oracle.winner?.evaluations ?? 0;
     oracleElapsedMs += oracle.results.reduce((sum, result) => sum + result.elapsedMs, 0);
@@ -94,7 +94,7 @@ export async function runOracleGapBenchmark(
         ? applyCandidate(current, width, height, result.candidate)
         : new Uint8ClampedArray(current);
 
-      staticCurrents.set(config.id, next);
+      staticCurrents.set(config.id, new Uint8ClampedArray(next));
       staticEvaluations.set(config.id, (staticEvaluations.get(config.id) ?? 0) + result.evaluations);
       staticElapsed.set(config.id, (staticElapsed.get(config.id) ?? 0) + result.elapsedMs);
       staticScores[config.id] = rmse(target, next, width, height);
@@ -104,7 +104,6 @@ export async function runOracleGapBenchmark(
     curve.push({ step: step + 1, oracleScore, staticScores });
     onProgress?.({ completedSteps: step + 1, totalSteps: steps, latestOracleScore: oracleScore });
 
-    // Give React a chance to paint progress during longer browser-side runs.
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   }
 
