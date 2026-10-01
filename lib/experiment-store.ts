@@ -1,4 +1,5 @@
 import type { BenchmarkResult } from "@/lib/benchmark";
+import type { BenchmarkSuiteResult } from "@/lib/benchmark-suite";
 import type { SearchResult } from "@/lib/search";
 
 export type ExperimentStepRecord = {
@@ -26,9 +27,10 @@ export type ExperimentRunRecord = {
 };
 
 const DB_NAME = "faint-research";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const RUN_STORE = "experiment-runs";
 const BENCHMARK_STORE = "benchmarks";
+const SUITE_STORE = "benchmark-suites";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -45,6 +47,9 @@ function openDatabase(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains(BENCHMARK_STORE)) {
         database.createObjectStore(BENCHMARK_STORE, { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains(SUITE_STORE)) {
+        database.createObjectStore(SUITE_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -131,6 +136,20 @@ export async function listBenchmarkResults() {
 
 export async function deleteBenchmarkResult(id: string) {
   await transactionRequest(BENCHMARK_STORE, "readwrite", (store) => store.delete(id));
+}
+
+export async function saveBenchmarkSuite(result: BenchmarkSuiteResult) {
+  await transactionRequest(SUITE_STORE, "readwrite", (store) => store.put(result));
+  return result;
+}
+
+export async function listBenchmarkSuites() {
+  const results = await transactionRequest<BenchmarkSuiteResult[]>(SUITE_STORE, "readonly", (store) => store.getAll());
+  return results.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function deleteBenchmarkSuite(id: string) {
+  await transactionRequest(SUITE_STORE, "readwrite", (store) => store.delete(id));
 }
 
 export function runToSerializable(run: ExperimentRunRecord) {
