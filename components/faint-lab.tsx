@@ -1,6 +1,15 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { BenchmarkPanel } from "@/components/benchmark-panel";
+import {
+  ExperimentStepRecord,
+  listExperimentRuns,
+  newExperimentRun,
+  runToCsv,
+  runToSerializable,
+  saveExperimentRun,
+} from "@/lib/experiment-store";
 import {
   DEFAULT_SEARCH_CONFIGS,
   SearchResult,
@@ -66,21 +75,57 @@ function fmt(value: number, digits = 5) {
   return Number.isFinite(value) ? value.toFixed(digits) : "—";
 }
 
+function downloadText(filename: string, text: string, type: string) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function FaintLab() {
   const initialTarget = useMemo(() => demoTarget(), []);
+  const initialBaseline = useMemo(() => createAverageCanvas(initialTarget, SIZE, SIZE), [initialTarget]);
   const [target, setTarget] = useState<Uint8ClampedArray>(initialTarget);
-  const [current, setCurrent] = useState<Uint8ClampedArray>(() => createAverageCanvas(initialTarget, SIZE, SIZE));
-  const [baseline, setBaseline] = useState<Uint8ClampedArray>(() => createAverageCanvas(initialTarget, SIZE, SIZE));
+  const [current, setCurrent] = useState<Uint8ClampedArray>(initialBaseline);
+  const [baseline, setBaseline] = useState<Uint8ClampedArray>(initialBaseline);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [trace, setTrace] = useState<TraceRow[]>([]);
   const [step, setStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [sourceName, setSourceName] = useState("synthetic landscape");
+  const [savedRunCount, setSavedRunCount] = useState(0);
+  const [persistenceState, setPersistenceState] = useState<"saving" | "saved" | "unavailable">("saving");
+  const [activeRun, setActiveRun] = useState(() =>
+    newExperimentRun("synthetic landscape", initialTarget, initialBaseline, SIZE, SIZE),
+  );
   const targetCanvas = useRef<HTMLCanvasElement>(null);
   const currentCanvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => paintCanvas(targetCanvas.current, target), [target]);
   useEffect(() => paintCanvas(currentCanvas.current, current), [current]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPersistenceState("saving");
+    saveExperimentRun(activeRun)
+      .then(() => listExperimentRuns())
+      .then((runs) => {
+        if (cancelled) return;
+        setSavedRunCount(runs.length);
+        setPersistenceState("saved");
+      })
+      .catch(() => {
+        if (!cancelled) setPersistenceState("unavailable");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRun]);
 
   const score = useMemo(() => rmse(target, current, SIZE, SIZE), [target, current]);
   const baselineScore = useMemo(() => rmse(target, baseline, SIZE, SIZE), [target, baseline]);
@@ -94,12 +139,13 @@ export function FaintLab() {
   function reset(nextTarget = target, name = sourceName) {
     const nextBaseline = createAverageCanvas(nextTarget, SIZE, SIZE);
     setTarget(new Uint8ClampedArray(nextTarget));
-    setCurrent(nextBaseline);
+    setCurrent(new Uint8ClampedArray(nextBaseline));
     setBaseline(new Uint8ClampedArray(nextBaseline));
     setResults([]);
     setTrace([]);
     setStep(0);
     setSourceName(name);
+    setActiveRun(newExperimentRun(name, nextTarget, nextBaseline, SIZE, SIZE));
   }
 
   async function onUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -129,29 +175,55 @@ export function FaintLab() {
     setRunning(true);
     let working = new Uint8ClampedArray(current);
     let workingStep = step;
-    const appended: TraceRow[] = [];
+    const appendedTrace: TraceRow[] = [];
+    const persistedSteps: ExperimentStepRecord[] = [];
 
     try {
       for (let index = 0; index < count; index++) {
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        const stateBefore = new Uint8ClampedArray(working);
+        const scoreBefore = rmse(target, stateBefore, SIZE, SIZE);
         const outcome = runOracleStep(target, working, SIZE, SIZE, workingStep, DEFAULT_SEARCH_CONFIGS);
         working = outcome.current;
         workingStep += 1;
+        const scoreAfter = rmse(target, working, SIZE, SIZE);
+        const teacherEvaluations = outcome.results.reduce((sum, result) => sum + result.evaluations, 0);
+
         setCurrent(new Uint8ClampedArray(working));
         setResults(outcome.results);
         setStep(workingStep);
 
+        persistedSteps.push({
+          step: workingStep,
+          createdAt: new Date().toISOString(),
+          stateBefore,
+          stateAfter: new Uint8ClampedArray(working),
+          scoreBefore,
+          scoreAfter,
+          actions: outcome.results,
+          winnerConfigId: outcome.winner?.config.id ?? null,
+          totalEvaluations: teacherEvaluations,
+        });
+
         if (outcome.winner) {
-          appended.push({
+          appendedTrace.push({
             step: workingStep,
             winner: outcome.winner.config.label,
             gain: outcome.winner.gain,
-            evaluations: outcome.results.reduce((sum, result) => sum + result.evaluations, 0),
-            score: outcome.winner.after,
+            evaluations: teacherEvaluations,
+            score: scoreAfter,
           });
         }
       }
-      if (appended.length) setTrace((previous) => [...previous, ...appended]);
+
+      if (appendedTrace.length) setTrace((previous) => [...previous, ...appendedTrace]);
+      if (persistedSteps.length) {
+        setActiveRun((previous) => ({
+          ...previous,
+          steps: [...previous.steps, ...persistedSteps],
+          updatedAt: new Date().toISOString(),
+        }));
+      }
     } finally {
       setRunning(false);
     }
@@ -277,6 +349,8 @@ export function FaintLab() {
         </div>
       </section>
 
+      <BenchmarkPanel target={target} baseline={baseline} sourceName={sourceName} width={SIZE} height={SIZE} />
+
       <section className="bottom-grid">
         <div className="panel trace-panel">
           <div className="panel-head">
@@ -294,15 +368,35 @@ export function FaintLab() {
         </div>
 
         <div className="panel next-panel">
-          <span className="kicker">next milestone</span>
-          <h2>Measure the oracle gap.</h2>
+          <span className="kicker">dataset</span>
+          <h2>Every decision is training data.</h2>
           <p>
-            Persist state/action/outcome tuples, replay every static policy over a benchmark set, then compare
-            the best fixed configuration against the per-state oracle. Only then do we train Laya, Jev, a bandit,
-            or a tiny local controller.
+            Faint now persists the complete state/action/outcome record for every oracle step in IndexedDB: pixels before and after,
+            all six action outcomes, the winner, exact RMSE, runtime, and renderer-evaluation cost.
           </p>
+          <div className="dataset-status">
+            <span className={`storage-dot ${persistenceState}`} />
+            <strong>{persistenceState === "saved" ? "Persisted locally" : persistenceState === "saving" ? "Saving…" : "Storage unavailable"}</strong>
+            <small>{activeRun.steps.length} states in this run · {savedRunCount} saved runs</small>
+          </div>
+          <div className="export-actions">
+            <button
+              className="button"
+              disabled={!activeRun.steps.length}
+              onClick={() => downloadText(`faint-run-${activeRun.id}.json`, JSON.stringify(runToSerializable(activeRun), null, 2), "application/json")}
+            >
+              Export dataset JSON
+            </button>
+            <button
+              className="button"
+              disabled={!activeRun.steps.length}
+              onClick={() => downloadText(`faint-run-${activeRun.id}.csv`, runToCsv(activeRun), "text/csv")}
+            >
+              Export outcomes CSV
+            </button>
+          </div>
           <div className="stack-tags">
-            <span>Next.js 16</span><span>TypeScript optimizer</span><span>Canvas pixels</span><span>No Python</span><span>No Go runtime</span>
+            <span>Next.js 16</span><span>TypeScript optimizer</span><span>IndexedDB</span><span>Counterfactual labels</span><span>No Python</span>
           </div>
         </div>
       </section>
