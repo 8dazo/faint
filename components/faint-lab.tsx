@@ -184,7 +184,7 @@ export function FaintLab() {
         const stateBefore = new Uint8ClampedArray(working);
         const scoreBefore = rmse(target, stateBefore, SIZE, SIZE);
         const outcome = runOracleStep(target, working, SIZE, SIZE, workingStep, DEFAULT_SEARCH_CONFIGS);
-        working = outcome.current;
+        working = new Uint8ClampedArray(outcome.current);
         workingStep += 1;
         const scoreAfter = rmse(target, working, SIZE, SIZE);
         const teacherEvaluations = outcome.results.reduce((sum, result) => sum + result.evaluations, 0);
