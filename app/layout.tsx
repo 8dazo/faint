@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./benchmark.css";
 
 export const metadata: Metadata = {
   title: "Faint — Learned Geometric Search",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </a>
           <nav>
             <a href="#lab">Lab</a>
+            <a href="#benchmark">Benchmark</a>
             <a href="https://github.com/8dazo/faint/tree/main/research" target="_blank" rel="noreferrer">Research</a>
             <a className="nav-github" href="https://github.com/8dazo/faint" target="_blank" rel="noreferrer">GitHub ↗</a>
           </nav>
