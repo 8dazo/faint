@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { BenchmarkPanel } from "@/components/benchmark-panel";
+import { BenchmarkSuitePanel } from "@/components/benchmark-suite-panel";
 import {
   ExperimentStepRecord,
   listExperimentRuns,
@@ -350,6 +351,7 @@ export function FaintLab() {
       </section>
 
       <BenchmarkPanel target={target} baseline={baseline} sourceName={sourceName} width={SIZE} height={SIZE} />
+      <BenchmarkSuitePanel />
 
       <section className="bottom-grid">
         <div className="panel trace-panel">
