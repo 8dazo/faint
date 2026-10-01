@@ -109,9 +109,10 @@ export async function runBenchmarkSuite(
     };
   });
 
-  const globalBest = policies.reduce((best, policy) =>
-    policy.meanNormalizedFinalScore < best.meanNormalizedFinalScore ? policy : best,
-  , policies[0]);
+  const globalBest = policies.reduce(
+    (best, policy) => policy.meanNormalizedFinalScore < best.meanNormalizedFinalScore ? policy : best,
+    policies[0],
+  );
 
   const oracleNormalizedScores = images.map((image) =>
     image.benchmark.oracleFinalScore / Math.max(image.benchmark.baselineScore, 1e-9),
