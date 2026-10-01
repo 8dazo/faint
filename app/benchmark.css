@@ -1,0 +1,195 @@
+.benchmark-panel {
+  margin-top: 20px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.benchmark-head {
+  align-items: flex-end;
+}
+
+.section-copy {
+  color: var(--muted);
+  max-width: 700px;
+  line-height: 1.65;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.benchmark-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.benchmark-controls select {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 11px 36px 11px 14px;
+  border-radius: 999px;
+  font: 700 12px var(--sans);
+}
+
+.benchmark-progress {
+  height: 4px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--soft);
+  margin: -5px 0 22px;
+}
+
+.benchmark-progress > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width .18s ease;
+}
+
+.error-callout {
+  padding: 12px 14px;
+  background: #f8dfd8;
+  border: 1px solid #e8b5a5;
+  color: #7c2e19;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-size: 12px;
+}
+
+.benchmark-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.benchmark-metrics > div {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-right: 1px solid var(--line);
+  background: rgba(233, 228, 217, .22);
+}
+
+.benchmark-metrics > div:last-child { border-right: 0; }
+.benchmark-metrics span { color: var(--muted); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; }
+.benchmark-metrics strong { font: 700 21px var(--mono); letter-spacing: -.04em; }
+.benchmark-metrics strong.positive { color: var(--green); }
+
+.benchmark-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, .75fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.benchmark-chart-wrap {
+  background: #f5f1e8;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 14px 10px;
+}
+
+.benchmark-chart { width: 100%; display: block; min-height: 240px; }
+.chart-axis { stroke: #9f9a8e; stroke-width: 1; }
+.chart-grid { stroke: #dad5c9; stroke-width: 1; stroke-dasharray: 3 5; }
+.chart-label { fill: #77736a; font: 10px var(--mono); }
+.chart-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.chart-oracle { stroke: var(--accent); }
+.chart-static { stroke: var(--green); stroke-dasharray: 6 6; }
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 10px;
+  padding: 4px 4px 0;
+}
+
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend i { width: 16px; height: 3px; border-radius: 99px; display: inline-block; }
+.legend-oracle { background: var(--accent); }
+.legend-static { background: var(--green); }
+
+.benchmark-verdict {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.benchmark-verdict .kicker { color: #aaa69d; }
+.benchmark-verdict h3 {
+  font: 500 29px/1.05 Georgia, "Times New Roman", serif;
+  letter-spacing: -.04em;
+  margin: 12px 0;
+}
+.benchmark-verdict > p { color: #c8c4bb; font-size: 12px; line-height: 1.65; margin: 0 0 16px; }
+.benchmark-verdict dl { margin: auto 0 18px; }
+.benchmark-verdict dl div { display: flex; justify-content: space-between; gap: 14px; border-top: 1px solid #3b3a36; padding: 9px 0; }
+.benchmark-verdict dt { color: #aaa69d; font-size: 10px; }
+.benchmark-verdict dd { margin: 0; font: 11px var(--mono); }
+.benchmark-verdict .button { background: #2d2c29; border-color: #48463f; color: #fff; }
+
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.benchmark-table { margin: 20px -24px -24px; border-top: 1px solid var(--line); }
+.benchmark-table table { min-width: 720px; }
+.benchmark-table td:first-child { color: var(--ink); }
+.benchmark-table .winner-pill { margin-left: 8px; vertical-align: middle; }
+
+.benchmark-empty {
+  border: 1px dashed #c9c2b4;
+  border-radius: 16px;
+  padding: 44px 24px;
+  text-align: center;
+  background: rgba(233, 228, 217, .18);
+}
+.benchmark-empty p { max-width: 670px; margin: 18px auto 10px; color: var(--muted); line-height: 1.65; font-size: 13px; }
+.benchmark-empty small { color: #99958b; font: 10px var(--mono); }
+.benchmark-equation { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; font: 600 18px Georgia, serif; }
+.benchmark-equation span { border: 1px solid var(--line); background: var(--paper); padding: 12px 16px; border-radius: 999px; }
+.benchmark-equation b { color: var(--accent); font: 800 10px var(--sans); text-transform: uppercase; letter-spacing: .12em; }
+
+.dataset-status {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 3px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+  margin: 20px 0;
+}
+.dataset-status strong { font-size: 12px; }
+.dataset-status small { grid-column: 2; color: var(--muted); font: 10px var(--mono); }
+.storage-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #999; }
+.storage-dot.saved { background: var(--green); box-shadow: 0 0 0 4px rgba(56, 109, 87, .12); }
+.storage-dot.saving { background: #d29238; box-shadow: 0 0 0 4px rgba(210, 146, 56, .12); }
+.storage-dot.unavailable { background: #9e4330; }
+
+@media (max-width: 980px) {
+  .benchmark-grid { grid-template-columns: 1fr; }
+  .benchmark-metrics { grid-template-columns: 1fr 1fr; }
+  .benchmark-metrics > div:nth-child(2) { border-right: 0; }
+  .benchmark-metrics > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .benchmark-head { align-items: flex-start; flex-direction: column; }
+  .benchmark-controls { justify-content: flex-start; }
+}
+
+@media (max-width: 640px) {
+  .benchmark-panel { padding: 18px; }
+  .benchmark-metrics { grid-template-columns: 1fr 1fr; }
+  .benchmark-metrics > div { padding: 14px; }
+  .benchmark-metrics strong { font-size: 17px; }
+  .benchmark-chart-wrap { padding: 8px; overflow-x: auto; }
+  .benchmark-chart { min-width: 620px; }
+  .benchmark-table { margin: 18px -18px -18px; }
+  .benchmark-verdict h3 { font-size: 25px; }
+}
